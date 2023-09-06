@@ -1,3 +1,7 @@
+#Este archivo usa una regresión logística para clasificar entre un cilindro de metal y una roca con forma cilíndrica
+#Utiliza los datos que se usan en el paper con el mismo nombre, de Gorman y Sejnowski, de 1988
+
+
 import numpy as np
 import pandas as pd
 import warnings
