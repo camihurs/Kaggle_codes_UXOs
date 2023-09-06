@@ -21,3 +21,9 @@ from sklearn.metrics import accuracy_score
 #La r antes de la ruta es para que no tome los \ como caracter de escape
 df = pd.read_csv(r"C:\Users\camih\Documents\DOCTORADO\Doctorado Belgica\PAPERS\Analysis of Hidden Units in a Layered Network\archive\sonar.all-data.csv")
 print(df.head())
+
+
+#Encontramos la distribución de la etiqueta ("Label")
+print(df['Label'].value_counts())
+#M: Metal
+#R: Rock
