@@ -311,7 +311,7 @@ controlan la apariencia y el comportamiento de la barra de progreso. El parámet
 disable se utiliza para desactivar la visualización de la barra de progreso
 """
 
-def model_train(model, x_train, y_train, x_test, y_text, n_epochs=250, batch_size=10):
+def model_train(model, x_train, y_train, x_test, y_test, n_epochs=250, batch_size=10):
     #two labels, binary cross-entropy loss
     criterion = nn.BCELoss() #definimos la función de pérdida
 
@@ -360,6 +360,7 @@ def model_train(model, x_train, y_train, x_test, y_text, n_epochs=250, batch_siz
                 #model.eval(): turns off parts of the model (e.g. dropout layers) used for training
                 #that aren't used in inference mode.
                 #torch.no_grad(): disable autograd and may speed up computation
+
         model.eval()
         with torch.no_grad():
             y_pred = model(x_test)
@@ -415,12 +416,60 @@ for i, (train_idx, test_idx) in enumerate(kfold.split(x,y)):
     print(f"Split {i}: ")
     print(f"    Train: index={train_idx[:10]}")#Solo mostramos 10 elementos, 10 filas de x
     print(f"    Test: index={test_idx[:10]}")#Igual para y
+#Lo anterior hace lo siguiente: para "x" y "y" imprime los índices
+#que se van a usar para entrenamiento y prueba
 
 
-######Ahora sí viene lo de verdad
+######Ahora sí viene lo de verdad##################################################
 
 #split the data into train and test sets
 x_train, x_test, y_train, t_test = train_test_split(x,y,train_size=0.7, shuffle=True, random_state=123)
 
 #setting kfold parameters
-kfold = StratifiedKFold(n_splits5, random_state=42, shuffle=True)
+kfold = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
+
+#lists to hold the cross-validation scores
+n_epochs = 250
+cv_scores_wide=[]
+cv_scores_deep=[]
+
+#kfold-split loops for each model
+fold_counter = 0
+for train_index, test_index in kfold.split(x_train, y_train):
+    model=Wide()
+    acc = model_train(
+        model,
+        x_train[train_index],#acá ya no imprimimos los índices, sino que estamos enviando
+        y_train[train_index],#los datos correspondientes a esos índices
+        x_train[test_index],#Y estamos usando como dataset de test una parte del dataset de
+        y_train[test_index],#entrenamiento original
+        n_epochs = n_epochs,#El dataset de prueba real se dejará para el final
+    )
+    fold_counter += 1
+    print(f"Split {fold_counter}")
+    print("Accuracy Wide Model: {:.2%}".format(acc))
+    cv_scores_wide.append(acc)
+
+fold_counter = 0
+
+for train_index, test_index in kfold.split(x_train, y_train):
+    model = Deep()
+    acc = model_train(
+        model,
+        x_train[train_index],
+        y_train[train_index],
+        x_train[test_index],
+        y_train[test_index],
+        n_epochs=n_epochs,
+    )
+    fold_counter += 1
+    print(f"Split {fold_counter}")
+    print("Accuracy Deep Model: {:.2%}".format(acc))
+    cv_scores_deep.append(acc)
+
+#printing scores of both nets
+acc_wide, std_wide = np.mean(cv_scores_wide), np.std(cv_scores_wide)
+acc_deep, std_deep = np.mean(cv_scores_deep), np.std(cv_scores_deep)
+
+print("\nAccuracy Wide Model: {:.2%} (+/- {:.2%})".format(acc_wide, std_wide))
+print("Accuracy Deep Model: {:.2%} (+/- {:.2%})".format(acc_deep, std_deep))
