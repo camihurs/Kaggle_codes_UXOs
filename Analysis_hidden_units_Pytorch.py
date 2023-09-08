@@ -275,3 +275,103 @@ result_deep = deep_model(random_data)
 
 print(f"\nResult Wide: {result_wide}")
 print(f"Result Deep: {result_deep}")
+
+
+"""
+Defining the FNN training loop
+After defining the network attributes and the forward method we can create the training
+loop, which will feed batches of data to the model, get the output to calculate the loss
+and using this loss in the backward pass to update the learnable parameters (i.e. weights
+and biases) of the network in each iteration (batch).
+
+The loss function calculates the difference between the predicted output and the ground
+truth labels. The optimizer adjust the parameters of the network towards minimization of
+the difference between the predictions and the actual labels.
+
+We define both the loss function and optimizers in the training loop to instantiate them
+in each iteration, allowing unbiased comparison between the performance of the models.
+"""
+
+from tqdm.notebook import tqdm_notebook
+import copy
+
+#tqdm makes it easy to implement a progress bar to monitor the training status and time
+tqdm_notebook.pandas()
+"""
+La línea de código tqdm_notebook.pandas() registra la función progress_apply de tqdm con
+el método apply de pandas. Esto permite mostrar una barra de progreso cuando se aplica una
+función a un DataFrame o una Serie de pandas utilizando el método apply. Después de
+ejecutar esta línea de código, puedes utilizar el método progress_apply en lugar del
+método apply para ver una barra de progreso mientras se aplica la función
+
+La función tqdm_notebook crea una barra de progreso para Jupyter Notebook y se utiliza
+junto con un bucle for para iterar sobre los datos de entrenamiento en lotes. El parámetro
+batch_start especifica el rango de índices para iterar, mientras que unit y mininterval
+controlan la apariencia y el comportamiento de la barra de progreso. El parámetro
+disable se utiliza para desactivar la visualización de la barra de progreso
+"""
+
+def model_train(model, x_train, y_train, x_test, y_text, n_epochs=250, batch_size=10):
+    #two labels, binary cross-entropy loss
+    criterion = nn.BCELoss() #definimos la función de pérdida
+
+    #Adam is a stochastic gradient descent optimizer that requires little memory and
+    #parameter tuning
+    optim = torch.optim.Adam(model.parameters(),lr=0.0001)
+
+    batch_start = torch.arange(start=0,end=len(x_train), step=batch_size)
+
+    #keeps the best model
+    best_acc = -np.inf #strating at negative infinity
+
+    best_weights = None #hold the best learnt parameters
+
+    #training loop (epoch counter)
+    for epoch in range(n_epochs):
+        model.train() #set the model to training mode (e.g. activates dropout layers)
+        with tqdm_notebook(
+            batch_start, unit="batch", mininterval=0, disable=True
+        ) as bar:
+            bar.set_description(f"Epoch: {epoch}")
+            for start in bar:
+                #get the batch
+                x_batch = x_train[start : start + batch_size]
+                y_batch = y_train[start : start + batch_size]
+
+                #FNN forward pass: obtain predictions and loss of each training batch
+                y_pred = model(x_batch) #predicts labels for training batch
+                loss = criterion(y_pred,y_batch) #calculate the loss of the batch
+
+                #FNN backward pass:
+                optim.zero_grad()#zero the parameter gradients of previous runs
+                loss.backward() # accumulates dloss/dx for every parameter that requires_grad=True
+                #update weigths using the accumulated loss stored in parameter_x.grad
+
+                optim.step()
+
+                #print training progress (accuracy and loss)
+                #using accuracy but for highly imbalanced datasets used balanced accuracy
+                #compute metrics after the optimization step to obtain metrics for the batch
+                acc = (y_pred.round() == y_batch).float().mean()
+                bar.set_postfix(loss=float(loss), acc=float(acc))
+
+                #calculates the accuracy after each epoch, i.e. when all the training data have
+                #passed through the network.
+                #model.eval(): turns off parts of the model (e.g. dropout layers) used for training
+                #that aren't used in inference mode.
+                #torch.no_grad(): disable autograd and may speed up computation
+        model.eval()
+        with torch.no_grad():
+            y_pred = model(x_test)
+            acc = float((y_pred.round()==y_test).float().mean())
+            if acc > best_acc:
+                best_acc = acc
+                best_weights = copy.deepcopy(model.state_dict())
+
+    #returns the best model (based on the best accuracy)
+    model.load_state_dict(best_weights)
+    return best_acc
+
+"""k-fold Cross-Validation
+With the data preprocessed and the network architectures on hands, we can carry out a
+competition between these two approaches to determine the best estimator.
