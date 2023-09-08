@@ -144,7 +144,7 @@ df.drop(columns=cols_to_drop, axis=1, inplace=True)
 df.head()
 
 #store the numer of remaining features (will be used to define the input size during training)
-num_features = len(df.columns)-1 #features minus label columns
+num_features = len(df.columns)-1 #features minus label columns, lo usamos más abajo en la red neuronal
 print(f"There are {num_features} remaining in the dataset.")
 
 "How the data look like after dropping highly correlated columns:"
@@ -177,3 +177,77 @@ y = torch.tensor(y,dtype=torch.float32).reshape(-1,1)
 
 print(f"features dim: {x.shape}")
 print(f"labels dim: {y.shape}")
+
+"""
+Designing Feedforward Neural Network (FNN) models¶
+The model is built using the PyTorch nn module, which is the base class for neural networks built in PyTorch
+and allows nested tree structure where submodules can be assigned as regular attributes. Just a refresher:
+
+A FNN in PyTorch has fully-connected layers as attributes and a forward method defining the network architecture
+and how the data will do the forward pass through the network.
+
+attributes: variables stored in an instance or class
+methods: functions encoded in an instance or class
+
+In a neural network the number of layers and the number of neurons in each layer are hyperparameters, i.e.,
+parameters hard-coded before training. A deep learning model has more than one hidden layer, while models with
+more parameters in the layers is a wider model. Here we test both to determine which one will give more accurate predictions.
+"""
+
+#defining the wide neural network structure (a single hidden layer)########################
+import torch.nn as nn
+
+#The neural network child class is derived from nn.Module base class
+#In the constructor, declare all the layers of the network
+
+class Wide(nn.Module):
+    #instantiate all modules (their attributes and methods)
+    def __init__(self):
+        #initialize attributes and methods of the parent class
+        super().__init__()
+        #input layer for 60 variables (60 units or neurons) and 180 output units; el 60 corresponde a las 60 columnas de las frecuencias
+        # 180 corresponde a la cantidad de neuronas de la capa oculta
+        self.hidden = nn.Linear(in_features=num_features, out_features=180)
+
+        #activation of the layer (breaking linearity)
+        self.relu = nn.ReLU()
+
+        #the output es a real number for binary classification...
+        self.output = nn.Linear(in_features=180, out_features=1)
+
+        #...and the sigmoid takes the input (1) tensor and squeeze (reescale) it to [0,1] range
+        #representing the probability of the target label of a given sample.
+        #class 1=P, class 2=1-P (class 1)
+        #Note: sigmoid is used for binary classification, softmax is an extension of sigmoid for multiclass problems
+        self.sigmoid = nn.Sigmoid()
+
+        #The forward function defines the neural network structure, with numero of units (neurons), activations,
+        #regularizations, outputs...
+        #Then, here we define how the network will be run from input to output:
+
+    def forward(self,x):
+        #taking the input, computing weights and applying non-linearity
+        x = self.relu(self.hidden(x))
+
+        #taking the output of the previous layer and squeezing it to the range [0,1]
+        x = self.sigmoid(self.output(x))
+        return x #x is the probability of class 1, while class 2 is (1-x)
+
+wide_model = Wide()
+print(wide_model)
+
+#defining the deep neural network structure (more than one hidden layer)
+
+class Deep(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layer1 = nn.Linear(in_features=num_features, out_features=60)#primera capa oculta de 60 neuronas
+        self.act1 = nn.ReLU()
+        self.layer2 = nn.Linear(60,60)
+        self.act2 = nn.ReLU()
+        self.layer3 = nn.Linear(60,60)
+        self.act3 = nn.ReLU()
+        self.output = nn.Linear(60,1)
+        self.sigmoid = nn.Sigmoid()
+
+        
