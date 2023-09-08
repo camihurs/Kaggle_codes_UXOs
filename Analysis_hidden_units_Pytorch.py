@@ -236,8 +236,8 @@ class Wide(nn.Module):
 wide_model = Wide()
 print(wide_model)
 
-#defining the deep neural network structure (more than one hidden layer)
-
+#defining the deep neural network structure (more than one hidden layer)##########################################
+#Tres capas ocultas, todas con función de activación ReLU
 class Deep(nn.Module):
     def __init__(self):
         super().__init__()
@@ -250,4 +250,28 @@ class Deep(nn.Module):
         self.output = nn.Linear(60,1)
         self.sigmoid = nn.Sigmoid()
 
-        
+def forward(self,x):
+    x = self.act1(self.layer1(x))
+    x = self.act2(self.layer2(x))
+    x = self.act3(self.layer3(x))
+    x = self.sigmoid(self.output(x))
+    return x
+
+#Instantiate the models and move them to the GPU
+#¿Eso de mover a la GPU es automático?
+
+deep_model = Deep()
+print(deep_model)
+
+
+#Testing the data flow through the networks with random data, the result will be around 0.5 probability bacause
+#the network is not trained yet and data is just blah blah blah for the model
+
+random_data = torch.rand(num_features)
+print(random_data)
+
+result_wide = wide_model(random_data)
+result_deep = deep_model(random_data)
+
+print(f"\nResult Wide: {result_wide}")
+print(f"Resultd Deep: {result_deep}")
