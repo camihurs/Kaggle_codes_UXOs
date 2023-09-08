@@ -375,3 +375,52 @@ def model_train(model, x_train, y_train, x_test, y_text, n_epochs=250, batch_siz
 """k-fold Cross-Validation
 With the data preprocessed and the network architectures on hands, we can carry out a
 competition between these two approaches to determine the best estimator.
+
+Note: We cannot test the model with the same data we've used for training the model
+because the model will simply repeat the labels of samples already seen. We have to
+separate a fraction of the full dataset to present it to the model and see if the
+model can generalize well for samples never seen before.
+
+Here we will seek how accurate are the predictions of a test set after a number
+of iterations between these two models. The metrics will be recorded for later evaluation,
+but the best model can be used right the way because we will encode its instantiation and
+training.
+
+The competition between the two networks is mediated by k-fold cross-validation from
+scikit-learn. The k-fold cross-validation allows dynamic k-fold splits of the data into
+training and test sets. It is similar to the Leave One Out strategy. Doing this we avoid
+choosing a model due to a good result just by chance arising from splitting the
+training data. Here, we assume that the data is Independent and Identically
+Distributed (i.i.d.), meaning that they where obtained using the same process and each
+ sample doesn't have a "memory" of past samples.
+
+The k-fold cross-validation is good to choose parameters for the model. In this case,
+ the network architecture is the parameter we're testing.
+
+For this task we can use StratifiedKFold from Sklearn, which returns samples's indices
+to split the data while preserving the percentage of samples of each label among the
+splits. We can set the number of splits and a integer seed to control randomness and
+ensure reproducibility during model evaluation. First, lets see the StratifiedKFold
+behavior when generating indices:
+"""
+
+from sklearn.model_selection import StratifiedKFold, train_test_split
+
+###Esto es sólo una prueba para el funcionamiento del stratifiedKFold
+kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+print("Tamaño de x: ", x.shape)
+print("Tamaño de y: ", y.shape)
+for i, (train_idx, test_idx) in enumerate(kfold.split(x,y)):
+    print(f"Split {i}: ")
+    print(f"    Train: index={train_idx[:10]}")#Solo mostramos 10 elementos, 10 filas de x
+    print(f"    Test: index={test_idx[:10]}")#Igual para y
+
+
+######Ahora sí viene lo de verdad
+
+#split the data into train and test sets
+x_train, x_test, y_train, t_test = train_test_split(x,y,train_size=0.7, shuffle=True, random_state=123)
+
+#setting kfold parameters
+kfold = StratifiedKFold(n_splits5, random_state=42, shuffle=True)
