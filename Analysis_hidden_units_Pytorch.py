@@ -538,7 +538,7 @@ hasta (1,1)1. AUC proporciona una medida agregada del rendimiento en todos los p
 umbrales de clasificación1. Una forma de interpretar AUC es como la probabilidad de que el
 modelo clasifique un ejemplo positivo aleatorio más alto que un ejemplo negativo aleatorio.
 AUC varía en valor de 0 a 1. Un modelo cuyas predicciones son 100% incorrectas tiene un AUC
-de 0.0; uno cuyas predicciones son 100% correctas tiene un AUC de 1.01.
+de 0.0; uno cuyas predicciones son 100% correctas tiene un AUC de 1.0.
 
 Estas métricas son útiles porque proporcionan una forma cuantitativa de comparar diferentes
 modelos y seleccionar el que tenga el mejor rendimiento.
@@ -590,3 +590,29 @@ FNN) to NumPy arrays for Sklearn algorithms.
 """
 
 #Detach computational graph and convert to ndarray
+x_train, y_train = x_train.detach().numpy(), y_train.ravel().detach().numpy()
+x_test, y_test = x_test.detach().numpy(), y_test.ravel().detach().numpy()
+
+"""
+La función ravel() de numpy se utiliza para transformar un array multidimensional en un
+array unidimensional1. En el caso de y_train.ravel().detach().numpy(), se está aplicando
+ravel() para asegurar que y_train sea un array unidimensional antes de convertirlo a un
+array numpy.
+"""
+print(f"Types x_train {type(x_train)} and y_train {type(y_train)}.")
+print(f"Types x_test {type(x_test)} and y_test {type(y_test)}.")
+print(f"x_train shape: {x_train.shape}")
+print(f"y_train shape: {y_train.shape}")
+print(f"x_test shape: {x_test.shape}")
+print(f"y_test shape: {y_test.shape}")
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import ConfusionMatrixDisplay, RocCurveDisplay
+
+clf = LogisticRegression(random_state=42)
+clf.fit(x_train, y_train)
+y_pred = clf.predict(x_test)
+
+print(f"Classification Report:\n {classification_report(y_test, y_pred)}")
+cm = ConfusionMatrixDisplay.from_estimator(clf, x_test, y_test, cmap="Blues", normalize="pred")
+disp = RocCurveDisplay.from_estimator(clf, x_test, y_test)
