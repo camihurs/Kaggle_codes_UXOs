@@ -679,3 +679,31 @@ back the output, which can be a vector of label probabilities or a continuous va
 regressions. In classification, the function determines a contour in the input feature space.
 We can visualize how the data points are distributed across this boundary.
 """
+
+from sklearn.inspection import DecisionBoundaryDisplay
+
+clf = LogisticRegression(random_state=42)
+
+clf.fit(
+    x_train[:,10:12], y_train
+)#only two features from the dataset to plot the decision boundary
+_, ax = plt.subplots(figsize=(10,7))
+
+DecisionBoundaryDisplay.from_estimator(
+    clf,
+    x_train[:,10:12],
+    response_method="predict",
+    cmap="GnBu",
+    ax=ax,
+    plot_method="pcolormesh",
+    shading="auto",
+    xlabel="Feature 1",
+    ylabel="Feature 2",
+    eps=0.1,
+)
+
+plt.scatter(x_train[:, 10], x_train[:,11], c=y_train, edgecolors="k", cmap="GnBu")
+
+plt.title("Decision Boundary")
+plt.xticks(())
+plt.yticks(())
