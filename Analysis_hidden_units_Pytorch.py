@@ -616,3 +616,66 @@ y_pred = clf.predict(x_test)
 print(f"Classification Report:\n {classification_report(y_test, y_pred)}")
 cm = ConfusionMatrixDisplay.from_estimator(clf, x_test, y_test, cmap="Blues", normalize="pred")
 disp = RocCurveDisplay.from_estimator(clf, x_test, y_test)
+
+
+##########Ahora vamos a aplicar GridSearch y RandomizedSearch para encontrar los mejores
+#hiperparámetros
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+
+#just ignoring sklearn warnings for this code
+import warnings
+warnings.filterwarnings("ignore")
+
+#instantiate the classifier
+clf = LogisticRegression(random_state=42, verbose=0)
+
+#define parameteres' options dictionary for tunning
+params = {
+    "penalty": [None, "l2", "l1", "elasticnet"],
+    "C": np.logspace(-3,3,8),
+    "solver":["lbfgs", "liblinear", "newton-cg", "newton-cholesky","sag","saga"],
+    #"max_iter":[100,250,500],
+    "warm_start":[True,False],
+    "l1_ratio":np.logspace(-1,0,8)
+}
+
+"""
+C: Controls the strength of the regularization (determined by 1/C) to be applied on the
+coeficients (there is one coefficient w for each feature and a constant bias b) during
+training. High C values (like C=100) determine low regularization strength and we expect
+that the training data is representative of real-world data because extreme values, if any,
+can lead to overfitting. On the other hand, low C values (0.1, 0.001) says to the model to
+take more care of the coefficients when training and regularization is then applied at the
+expense of fitting the model (in other words, reducing overfitting). Basically it says to
+the model how the training data is representative of real-world data.
+
+Penalty (None, L1 (LASSO), L2 (Ridge) and elasticnet): regularization terms applied to the
+cost function to control overfitting by tackling extreme coefficient values of the objective
+function. L1 regularization is also called lasso regression and adds the coefficient's
+absolute magnitude to the loss function, while L2 adds the squared magnitude. Elasticnet
+applies both L1 and L2 regularization where the ammount of each one is determined by the
+l1_ratio parameter, which is equivalent to L1 when its value is 1 and L2 when the ratio is 0.
+"""
+
+grid = GridSearchCV(estimator=clf, param_grid=params, cv=5)
+grid.fit(x_train, y_train)
+
+
+###################################
+print(f"GridSearchCV best parameters: {grid.best_params_}")
+print(f"GridSearchCV best score: {grid.best_score_}")
+print(f"GridSearchCV best estimator: {grid.best_estimator_}")
+
+print(f"Classification Report: \n{classification_report(y_test, y_pred)}")
+
+cm = ConfusionMatrixDisplay.from_estimator(grid, x_test, y_test, normalize="pred", cmap="Blues")
+disp = RocCurveDisplay.from_estimator(grid, x_test, y_test)
+
+"""
+Machine learning models can be thought as functions where you plug in input values and get
+back the output, which can be a vector of label probabilities or a continuous value in
+regressions. In classification, the function determines a contour in the input feature space.
+We can visualize how the data points are distributed across this boundary.
+"""
