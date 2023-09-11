@@ -423,7 +423,7 @@ for i, (train_idx, test_idx) in enumerate(kfold.split(x,y)):
 ######Ahora sí viene lo de verdad##################################################
 
 #split the data into train and test sets
-x_train, x_test, y_train, t_test = train_test_split(x,y,train_size=0.7, shuffle=True, random_state=123)
+x_train, x_test, y_train, y_test = train_test_split(x,y,train_size=0.7, shuffle=True, random_state=123)
 
 #setting kfold parameters
 kfold = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
@@ -473,3 +473,120 @@ acc_deep, std_deep = np.mean(cv_scores_deep), np.std(cv_scores_deep)
 
 print("\nAccuracy Wide Model: {:.2%} (+/- {:.2%})".format(acc_wide, std_wide))
 print("Accuracy Deep Model: {:.2%} (+/- {:.2%})".format(acc_deep, std_deep))
+
+"""
+As we can see, the Deep() model performs better. Indeed, it has been demonstrated
+that deeper neural networks, i.e. with more than one hidden layer, are able to
+capture more complexity from the data than shallow networks. However, deep networks
+are more computionally expensive for training and can be challenging to optimize
+the number of layers and neurons, additional dropout layers (see below), etc. On
+the other hand, shallow networks are relatively inexpensive computationally and
+can be tweaked more easily. Also, deeper networks may require more data for
+training to avoid overfitting.
+
+Overfitting: A model is overfit when it learned most of the noisy in the data. In other words,
+the model "memorizes" the training data and has little generalization capabilities when tested
+with data previouslly unseen by the model.
+
+Underfitting: A model is underfit when it has poor prediction power on both training and
+testing data. In other words, the model still requires training to adjust the weights and
+biases of the network.
+
+Now that we have a decision on the best model, we can retrain the network using all the
+training data.
+"""
+
+model = Deep()
+acc = model_train(model, x_train, y_train, x_test, y_test)
+print("Accuracy Deep Model: {:.2%}".format(acc))
+
+"""
+And perform some model evaluations in inference mode... Lets get 5 samples at random and check
+if the model correctly predict the labels. In production, the model is usually deployed on a
+few samples.
+"""
+
+import random
+
+model.eval()
+with torch.no_grad():
+    for idx in range(5):
+        #generates a random index in x_text index range
+        rnd_int = sum(random.sample(range(0,len(x_test)),k=1))#No entiendo para qué usar el sum, creo que funciona igual sin él.
+        prediction = model(x_test[rnd_int]).detach().numpy()
+        print(
+            "Sample {} label: {} \nPredicted label: {}. (output: {}).\n".format(rnd_int,
+                                                                                y_test[rnd_int].round(),
+                                                                                prediction.round(),
+                                                                                prediction
+                                                                                )
+        )
+
+"""
+En el contexto de los algoritmos de clasificación, como las redes neuronales, ROC y AUC son
+dos métricas importantes que se utilizan para evaluar el rendimiento del modelo.
+
+ROC (Receiver Operating Characteristic): Es una curva que muestra el rendimiento de un modelo
+de clasificación en todos los umbrales de clasificación1. Esta curva traza dos parámetros:
+la tasa de verdaderos positivos (TPR) y la tasa de falsos positivos (FPR)1. Al disminuir el
+umbral de clasificación, se clasifican más elementos como positivos, lo que aumenta tanto los
+falsos positivos como los verdaderos positivos.
+
+AUC (Area Under the ROC Curve): AUC significa “Área bajo la curva ROC”. Es decir, AUC mide toda
+el área bidimensional debajo de toda la curva ROC (piensa en cálculo integral) desde (0,0)
+hasta (1,1)1. AUC proporciona una medida agregada del rendimiento en todos los posibles
+umbrales de clasificación1. Una forma de interpretar AUC es como la probabilidad de que el
+modelo clasifique un ejemplo positivo aleatorio más alto que un ejemplo negativo aleatorio.
+AUC varía en valor de 0 a 1. Un modelo cuyas predicciones son 100% incorrectas tiene un AUC
+de 0.0; uno cuyas predicciones son 100% correctas tiene un AUC de 1.01.
+
+Estas métricas son útiles porque proporcionan una forma cuantitativa de comparar diferentes
+modelos y seleccionar el que tenga el mejor rendimiento.
+"""
+from sklearn.metrics import (roc_curve,
+                             roc_auc_score,
+                             ConfusionMatrixDisplay,
+                             confusion_matrix,
+                             classification_report
+                             )
+
+#Predict testing set labels
+y_pred = model(x_test)
+
+#Remove computational graph from tensor and convert to numpy array
+y_pred = y_pred.ravel().detach().numpy()
+
+#Print classification report
+print(f"Classification Report: \n {classification_report(y_test, y_pred.round())}")
+
+#Get ROC and AUC score
+fpr, tpr, _ = roc_curve(y_test, y_pred) #false positive rate, true positive rate
+score = roc_auc_score(y_test, y_pred)
+plt.plot(fpr,tpr)
+plt.title("Receiver Operating Characteristics (ROC) Curve")
+plt.ylabel("True Positive Rate (TPR)")
+plt.xlabel("False Positive Rate (FPR)")
+
+# Add custom legend with AUC score
+score = "ROC/AUC score: " + str(score.round(decimals=3))
+plt.legend(labels=[score], loc="lower right", edgecolor = "w", fontsize = 12)
+
+#Confusion matrix
+cm = confusion_matrix(y_test.ravel().detach().numpy(), y_pred.round(), normalize="pred")
+"""
+En tu caso, normalize="pred" significa que la matriz de confusión se normaliza sobre las
+condiciones predichas (columnas)1. Esto puede ser útil para interpretar visualmente cómo
+se están prediciendo las etiquetas y también para realizar comparaciones
+"""
+cm = ConfusionMatrixDisplay(cm).plot(cmap="Blues")
+
+#####################################################################
+###Ahora se usará Logistic regression
+"""
+Let's try these out-of-the-box models and then search for the best hyperparameters using
+GridSearchCV or RandomizedSearchCV from Sklearn. Before that, we convert PyTorch tensors,
+that has additional characteristics (e.g. computational graph to compute gradients in the
+FNN) to NumPy arrays for Sklearn algorithms.
+"""
+
+#Detach computational graph and convert to ndarray
