@@ -806,3 +806,59 @@ print(params)
 
 grid = GridSearchCV(pipe, param_grid=params, cv=5)
 grid.fit(x_train, y_train)
+
+######################################3
+
+print(f"GridSearchCV best parameters: {grid.best_params_}")
+print(f"GridSearchCV best score: {grid.best_score_}")
+print(f"GridSearchCV best estimator: {grid.best_estimator_}\n")
+
+print(f"Classification Report:\n{classification_report(y_test, y_pred)}")
+
+cm = ConfusionMatrixDisplay.from_estimator(grid, x_test, y_test, normalize="pred", cmap="Blues")
+
+disp = RocCurveDisplay.from_estimator(grid, x_test, y_test)
+
+########################################
+
+clf = SVC(random_state=42)
+
+sc = StandardScaler()
+x_train[:, 10:12] = sc.fit_transform(x_train[:, 10:12])
+
+clf.fit(
+    x_train[:, 10:12], y_train
+)  # only two features from the dataset to plot the decision boundary
+_, ax = plt.subplots(figsize=(10, 7))
+
+DecisionBoundaryDisplay.from_estimator(
+    clf,
+    x_train[:, 10:12],
+    response_method="predict",
+    cmap="GnBu",
+    ax=ax,
+    plot_method="pcolormesh",
+    shading="auto",
+    xlabel="Feature 1",
+    ylabel="Feature 2",
+    eps=1.5,
+)
+
+plt.scatter(x_train[:, 10], x_train[:, 11], c=y_train, edgecolors="k", cmap="GnBu")
+
+plt.title("Decision Boundary")
+plt.xticks(())
+plt.yticks(())
+
+"""
+As we can see, build a feedforward neural network in PyTorch is quite simple if one understand
+basic principles of data preprocessing, neural networks and basic class inheritance in Python.
+It is also clear that a simple neural network with the right number of neurons and layers can
+capture the complexity in the data to correctly classify both metal and rock cilinders. However,
+the classic machine learning algorithms such as Logistic Regression and Support Vector Machine
+classifier can do a pretty good job classifying the samples. In fact, the neural network has a
+bit more capacity in classifying metal cylinder (label 0) than logit and SVC. It is also clear
+that regularization can improve significantly the performance of machine learning models when
+dealing with previously unseen data because models trained under such constrains to allow
+generalization power.
+"""
