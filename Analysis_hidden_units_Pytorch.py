@@ -707,3 +707,102 @@ plt.scatter(x_train[:, 10], x_train[:,11], c=y_train, edgecolors="k", cmap="GnBu
 plt.title("Decision Boundary")
 plt.xticks(())
 plt.yticks(())
+
+
+#SUPPORT VECTOR MACHINE####################################3
+"""
+Starting with the out-of-the-box model without any hyperparameter tunning. Just the default
+determined by Sklearn team:
+"""
+
+from sklearn.svm import SVC
+
+clf = SVC(random_state=42)
+clf.fit(x_train, y_train)
+
+y_pred = clf.predict(x_test)
+
+print(f"Classification Report: \n{classification_report(y_test,y_pred)}")
+cm = ConfusionMatrixDisplay.from_estimator(clf,x_test,y_test,normalize="pred",cmap="Blues")
+disp=RocCurveDisplay.from_estimator(clf,x_test,y_test)
+
+"""
+Again lets search a grid for the best hyperparameters for the SVC classifier:
+"""
+
+#Instantiating SVC classifier with fixed random seed for reproducibility
+clf = SVC(random_state=42)
+
+#Defines parameters'gris
+params={
+    "C": np.logspace(-3,3,8),
+    "gamma": np.logspace(-3,3,8),
+}
+print(params)
+
+grid = GridSearchCV(clf, param_grid=params, cv=5)
+grid.fit(x_train,y_train)
+
+print(f"GridSearchCV best parameters: {grid.best_params_}")
+print(f"GridSearchCV best score: {grid.best_score_}")
+print(f"GridSearchCV best estimator: {grid.best_estimator_}")
+
+print(f"Classification Report: \n{classification_report(y_test,y_pred)}")
+
+cm = ConfusionMatrixDisplay.from_estimator(grid, x_test, y_test, normalize="pred", cmap="Blues")
+disp = RocCurveDisplay.from_estimator(grid,x_test,y_test)
+
+"""
+Not surprisingly, SVC performs very well both with out-of-the-box and tuned hyperparameters.
+The plenty of regularization is the one to "blame". It would be interesting to check the
+decision boundary in this case.
+"""
+
+from sklearn.inspection import DecisionBoundaryDisplay
+
+clf = SVC(random_state=42)
+
+clf.fit(
+    x_train[:,10:12], y_train
+)# only two features from the dataset to plot the decision boundary
+_, ax = plt.subplots(figsize = (10,7))
+
+DecisionBoundaryDisplay.from_estimator(
+    clf,
+    x_train[:,10:12],
+    response_method="predict",
+    cmap="GnBu",
+    ax=ax,
+    plot_method="pcolormesh",
+    shading="auto",
+    xlabel="Feature 1",
+    ylabel="Feature 2",
+    eps=0.3,
+)
+
+plt.scatter(x_train[:,10], x_train[:,11], c=y_train, edgecolors="k", cmap="GnBu")
+
+plt.title("Decision Boundary")
+plt.xticks(())
+plt.yticks(())
+
+"""
+Last things last, making a pipeline that first scales the data and then use the scaled data to
+train the model.
+"""
+
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+
+pipe = Pipeline([("sc", StandardScaler()),
+                     ("model", SVC(random_state=42))])
+
+# defines parameters' grid
+params = {
+    "model__C": np.logspace(-3, 3, 8),
+    "model__gamma": np.logspace(-3, 3, 8),
+}
+print(params)
+
+grid = GridSearchCV(pipe, param_grid=params, cv=5)
+grid.fit(x_train, y_train)
